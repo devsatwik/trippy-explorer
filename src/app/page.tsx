@@ -87,10 +87,37 @@ function TrippyAIExplorer({ mapsApiKey }: { mapsApiKey: string }) {
     setIsDetecting(true);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => { setLocation(`Lat: ${pos.coords.latitude.toFixed(2)}, Lng: ${pos.coords.longitude.toFixed(2)}`); setCoordinates({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setIsDetecting(false); },
-        () => { alert("Location access denied."); setIsDetecting(false); }
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setCoordinates({ lat, lng });
+          
+          try {
+            const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${mapsApiKey}`);
+            const data = await res.json();
+            if (data.status === "OK" && data.results && data.results.length > 0) {
+              // Try to find a locality/city or just use the most specific formatted address
+              const result = data.results.find((r: any) => r.types.includes("locality")) || data.results[0];
+              setLocation(result.formatted_address);
+            } else {
+              setLocation(`Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`);
+            }
+          } catch (err) {
+            setLocation(`Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`);
+          }
+          setIsDetecting(false);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          alert("Could not detect location. Please ensure location permissions are granted.");
+          setIsDetecting(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
-    } else { alert("Geolocation not supported"); setIsDetecting(false); }
+    } else {
+      alert("Geolocation is not supported by your browser.");
+      setIsDetecting(false);
+    }
   };
 
   const handleGenerate = async () => {
