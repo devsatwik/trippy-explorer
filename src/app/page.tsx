@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useJsApiLoader, GoogleMap, MarkerF, Autocomplete } from "@react-google-maps/api";
 
 // Inline SVGs
@@ -18,10 +18,34 @@ const INTERESTS = [
   { id: "active", icon: <WalkIcon />, title: "🏃 Active & Adventure", desc: "Hiking, biking, and activities" }
 ];
 
-const libraries = ['places'];
+const libraries: ("places")[] = ['places'];
 const mapContainerStyle = { width: '100%', height: '100%' };
 
-export default function TrippyAIExplorerV2() {
+// --- Wrapper component: fetches key first, then renders the real app ---
+export default function AppWrapper() {
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then(res => res.json())
+      .then(data => setMapsApiKey(data.mapsApiKey || ""))
+      .catch(() => setMapsApiKey(""));
+  }, []);
+
+  if (mapsApiKey === null) {
+    return (
+      <div className="flex-center" style={{ height: "100vh", flexDirection: "column", gap: "20px" }}>
+        <div style={{ animation: "pulse 1.5s infinite" }}><MapPinIcon /></div>
+        <h2 style={{ color: "var(--text-muted)" }}>Loading Trippy Explorer...</h2>
+      </div>
+    );
+  }
+
+  return <TrippyAIExplorer mapsApiKey={mapsApiKey} />;
+}
+
+// --- Main Application ---
+function TrippyAIExplorer({ mapsApiKey }: { mapsApiKey: string }) {
   const [step, setStep] = useState<"location" | "interests" | "loading" | "itinerary">("location");
   
   // State
@@ -34,9 +58,9 @@ export default function TrippyAIExplorerV2() {
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const [radius, setRadius] = useState<number>(20);
 
-  const onLoadAutocomplete = (autocompleteInstance: any) => {
+  const onLoadAutocomplete = useCallback((autocompleteInstance: any) => {
     setAutocomplete(autocompleteInstance);
-  };
+  }, []);
 
   const onPlaceChanged = () => {
     if (autocomplete !== null) {
@@ -57,7 +81,7 @@ export default function TrippyAIExplorerV2() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: mapsApiKey,
     libraries: libraries as any
   });
 
@@ -65,7 +89,7 @@ export default function TrippyAIExplorerV2() {
     if (places && places.length > 0 && places[0].lat && places[0].lng) {
       return { lat: places[0].lat, lng: places[0].lng };
     }
-    return { lat: 40.7128, lng: -74.0060 }; // Default to NYC if no valid places
+    return { lat: 40.7128, lng: -74.0060 };
   }, [places]);
 
   // Step 1: Auto-Detect Location
@@ -74,7 +98,6 @@ export default function TrippyAIExplorerV2() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // In a real app, reverse geocode the lat/lng to a city name
           setLocation(`Lat: ${position.coords.latitude.toFixed(2)}, Lng: ${position.coords.longitude.toFixed(2)}`);
           setCoordinates({ lat: position.coords.latitude, lng: position.coords.longitude });
           setIsDetecting(false);
