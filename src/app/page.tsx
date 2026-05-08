@@ -117,14 +117,14 @@ function TrippyAIExplorer({ mapsApiKey }: { mapsApiKey: string }) {
         <form onSubmit={(e) => { e.preventDefault(); if (location.trim()) setStep("interests"); }} className="glass-panel" style={{ padding: "2rem", width: "100%", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "1rem" }}>
           {isLoaded ? (
             <Autocomplete onLoad={onLoadAutocomplete} onPlaceChanged={onPlaceChanged}>
-              <input type="text" className="input-field" placeholder="e.g. Bangalore, India" value={location} onChange={(e) => setLocation(e.target.value)} required style={{ width: "100%" }} />
+              <input type="text" className="input-field" placeholder="e.g. Bangalore, India" value={location} onChange={(e) => setLocation(e.target.value)} required style={{ width: "100%" }} aria-label="Enter your destination city or neighborhood" />
             </Autocomplete>
           ) : (
-            <input type="text" className="input-field" placeholder="e.g. Bangalore, India" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <input type="text" className="input-field" placeholder="e.g. Bangalore, India" value={location} onChange={(e) => setLocation(e.target.value)} required aria-label="Enter your destination city or neighborhood" />
           )}
           <div style={{ display: "flex", gap: "1rem" }}>
-            <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={handleAutoDetect} disabled={isDetecting}>{isDetecting ? "Detecting..." : "📍 Auto-Detect"}</button>
-            <button type="submit" className="btn-primary" style={{ flex: 1 }}>Next ➔</button>
+            <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={handleAutoDetect} disabled={isDetecting} aria-label="Auto-detect my current location">{isDetecting ? "Detecting..." : "📍 Auto-Detect"}</button>
+            <button type="submit" className="btn-primary" style={{ flex: 1 }} aria-label="Proceed to interest selection">Next ➔</button>
           </div>
         </form>
       </div>
@@ -143,16 +143,18 @@ function TrippyAIExplorer({ mapsApiKey }: { mapsApiKey: string }) {
           <label style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "flex", justifyContent: "space-between" }}>
             <span>Search Radius</span><strong style={{ color: "white" }}>{radius} km</strong>
           </label>
-          <input type="range" min="1" max="100" value={radius} onChange={(e) => setRadius(Number(e.target.value))} style={{ width: "100%", accentColor: "#f43f5e" }} />
+          <input type="range" min="1" max="100" value={radius} onChange={(e) => setRadius(Number(e.target.value))} style={{ width: "100%", accentColor: "#f43f5e" }} aria-label={`Search radius: ${radius} kilometers`} aria-valuemin={1} aria-valuemax={100} aria-valuenow={radius} />
         </div>
 
-        <div className="grid-3">
+        <div className="grid-3" role="group" aria-label="Select your interests">
           {INTERESTS.map((interest) => {
             const isSelected = selectedInterests.includes(interest.title);
             return (
               <div key={interest.id} className={`glass-panel vibe-card ${isSelected ? 'vibe-selected' : ''}`} onClick={() => toggleInterest(interest.title)}
+                role="button" tabIndex={0} aria-pressed={isSelected} aria-label={`${interest.title}: ${interest.desc}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleInterest(interest.title); }}}
                 style={{ border: isSelected ? "2px solid #f43f5e" : "2px solid transparent", position: "relative" }}>
-                {isSelected && <div style={{ position: "absolute", top: "8px", right: "8px", background: "#f43f5e", borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "white", fontWeight: "bold" }}>✓</div>}
+                {isSelected && <div aria-hidden="true" style={{ position: "absolute", top: "8px", right: "8px", background: "#f43f5e", borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "white", fontWeight: "bold" }}>✓</div>}
                 <div className="vibe-title">{interest.title}</div>
                 <div className="vibe-desc">{interest.desc}</div>
               </div>
